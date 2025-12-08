@@ -52,7 +52,7 @@
         .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 25px; margin-bottom: 25px; box-shadow: var(--shadow); }
         .card-header { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--primary-dark); }
 
-        /* Controls */
+        /* Inputs */
         .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; align-items: end; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
         .form-group input { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; transition: 0.2s; }
@@ -100,8 +100,48 @@
         .bulk-table th { background: #F9FAFB; position: sticky; top: 0; padding: 12px; text-align: left; border-bottom: 2px solid var(--border); z-index: 10; font-weight:700; color:var(--text-main); }
         .bulk-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 
-        .logic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .logic-card { border: 1px solid var(--border); padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary); background: white; }
+        /* Logic Grid & Interactive Cards */
+        .logic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 15px; }
+        
+        .logic-card { 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            border-left: 4px solid var(--primary); 
+            background: white; 
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .logic-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .logic-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logic-title { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+        .logic-icon { color: var(--text-muted); transition: transform 0.3s; }
+        
+        .logic-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+            background: #F9FAFB;
+            border-top: 1px solid #eee;
+        }
+
+        .logic-card.active .logic-icon { transform: rotate(180deg); color: var(--primary); }
+        .logic-card.active .logic-content { max-height: 500px; /* arbitrary large height */ border-top: 1px solid var(--border); }
+
+        .logic-body { padding: 15px; font-size: 0.85rem; color: var(--text-main); line-height: 1.6; }
+        .logic-label { font-weight: 700; color: var(--primary-dark); margin-top: 10px; display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .logic-code { font-family: monospace; background: #e0e7ff; padding: 2px 6px; border-radius: 4px; color: #3730a3; display: inline-block; margin-top: 4px; }
 
         /* Conditional Logic Styles */
         .cond-row { background: #fff; }
@@ -112,7 +152,7 @@
 <body>
 
     <nav class="navbar">
-        <div class="logo"><i class="fa-solid fa-chart-pie"></i> PIT | Bircalc</div>
+        <div class="logo"><i class="fa-solid fa-chart-pie"></i> PIT | BIRCALC</div>
         <div class="nav-links">
             <div class="nav-item active" onclick="switchTab('simulator', this)">Simulator</div>
             <div class="nav-item" onclick="switchTab('scenario', this)">Scenario Manager</div>
@@ -220,7 +260,6 @@
 
         <!-- TAB 2: SCENARIO -->
         <div id="scenario" class="tab-pane">
-            <!-- (Same as before) -->
             <div class="card">
                 <div class="card-header">
                     <span>Scenario Builder</span>
@@ -404,7 +443,7 @@
         <!-- TAB 5: HELP -->
         <div id="help" class="tab-pane">
             <div class="card">
-                <div class="card-header">Column Definitions & Formulas</div>
+                <div class="card-header">Interactive Column Explanations (Click to Expand)</div>
                 <div class="logic-grid" id="logic-container"></div>
             </div>
         </div>
@@ -412,7 +451,22 @@
     </div>
 
 <script>
-    // --- 1. CONFIG ---
+    // --- DATA & CONFIG ---
+    // Detailed definitions for the Help Tab
+    const FORMULA_DEFS = {
+        'oldGross': { desc: "The base monthly salary before any deductions.", logic: "Manual Input", impact: "Starting point for all calculations." },
+        'oldNet': { desc: "The amount the employee currently takes home.", logic: "Gross - (Pension + Unemp + Health + 1% Union). Tax is 0 in 2025.", impact: "Baseline for equalization target." },
+        'oldSuperGross': { desc: "Total cost to the employer in current state.", logic: "Gross + Emp Social + Emp Unemp + Emp Medical.", impact: "Base budget." },
+        'oldEmpSocial': { desc: "Social Insurance paid by Employer.", logic: "IF(Gross<=200, 22%, (Gross-200)*15%+44).", impact: "Employer cost." },
+        'oldEmpMed': { desc: "Medical Insurance paid by Employer.", logic: "IF(Gross<=8000, 2%, (Gross-8000)*0.5%+160).", impact: "Employer cost." },
+        'oldUnion': { desc: "Trade Union Membership Fee.", logic: "Gross * 1%.", impact: "Reduces Net Salary." },
+        'newGrossReq': { desc: "The new Gross Salary calculated to achieve the target Net.", logic: "Reverse calculation using tax coefficients (0.945, etc.) + 1% Union adjustment.", impact: "The new salary to be offered." },
+        'newTax': { desc: "Personal Income Tax in 2026.", logic: "Progressive: 0% (<200), 3% (<2500), 10% (<8000), 14% (>8000).", impact: "Reduces Net Salary." },
+        'newNet': { desc: "The actual Net Salary the employee will receive in 2026.", logic: "New Gross - (Tax + Pension + Unemp + Health + Union).", impact: "Employee take-home pay." },
+        'newSuperGross': { desc: "Total new cost to the employer.", logic: "New Gross + New Emp Taxes + Meal Allowance.", impact: "New budget requirement." },
+        'addCost': { desc: "The financial impact of the transition.", logic: "New Super Gross - Old Super Gross.", impact: "Positive = Cost Increase, Negative = Savings." }
+    };
+
     const FIELDS = [
         {id:'oldGross', name:'Current Monthly Gross Salary'}, 
         {id:'oldNet', name:'Current Net Salary'}, 
@@ -569,7 +623,7 @@
         document.getElementById('k-pocket').innerText = fmt(res.newNet + res.mealAllowance);
     }
 
-    // --- SCENARIO MANAGER (Standard) ---
+    // --- SCENARIO MANAGER ---
     function addScen() {
         let b = document.getElementById('scen-body');
         let r = document.createElement('tr');
@@ -789,10 +843,34 @@
         XLSX.writeFile(wb,"Report.xlsx");
     }
 
+    // GENERATE HELP CARDS
+    const logicContainer = document.getElementById('logic-container');
     FIELDS.forEach(f => {
-        document.getElementById('logic-container').innerHTML += `
-            <div class="logic-card"><div class="logic-title">${f.name}</div><div class="logic-desc">Calculated field based on 2025/2026 rules.</div></div>
+        let def = FORMULA_DEFS[f.id] || {desc: "Calculated Field", logic: "Standard logic", impact: "General Impact"};
+        
+        let card = document.createElement('div');
+        card.className = 'logic-card';
+        card.onclick = function() { this.classList.toggle('active'); };
+        
+        card.innerHTML = `
+            <div class="logic-header">
+                <div class="logic-title">${f.name}</div>
+                <i class="fa-solid fa-chevron-down logic-icon"></i>
+            </div>
+            <div class="logic-content">
+                <div class="logic-body">
+                    <span class="logic-label">Description</span>
+                    ${def.desc}
+                    
+                    <span class="logic-label">Logic / Formula</span>
+                    ${def.logic}
+                    
+                    <span class="logic-label">Impact</span>
+                    ${def.impact}
+                </div>
+            </div>
         `;
+        logicContainer.appendChild(card);
     });
 
     function switchTab(id, el){
