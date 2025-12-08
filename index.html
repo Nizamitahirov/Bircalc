@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salary Equalization Dashboard Pro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-dark: #3730A3;
+            --bg-body: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --danger: #EF4444;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; padding-bottom: 50px; font-size: 14px; }
+        * { box-sizing: border-box; }
+
+        /* Navigation */
+        .navbar {
+            background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 0 40px; height: 70px;
+            display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .logo { font-weight: 800; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .nav-links { display: flex; gap: 8px; height: 100%; }
+        .nav-item {
+            display: flex; align-items: center; gap: 8px; padding: 0 20px;
+            font-weight: 500; color: var(--text-muted); cursor: pointer;
+            border-bottom: 3px solid transparent; transition: all 0.2s; height: 100%; font-size: 0.95rem;
+        }
+        .nav-item:hover { color: var(--primary); background: #EEF2FF; }
+        .nav-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Card Styles */
+        .card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 25px; margin-bottom: 25px; box-shadow: var(--shadow); }
+        .card-header { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--primary-dark); }
+
+        /* Controls */
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; align-items: end; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; transition: 0.2s; }
+        .form-group input:focus { border-color: var(--primary); outline: none; ring: 2px solid var(--primary); }
+        .range-wrap { position: relative; padding-top: 10px; }
+        .range-val { font-weight: bold; color: var(--primary); float: right; }
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        /* Dashboard KPIs */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .dash-card { background: white; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); text-align: center; box-shadow: var(--shadow); }
+        .dash-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .dash-val { font-size: 1.8rem; font-weight: 800; color: var(--text-main); }
+        .dash-sub { font-size: 0.85rem; margin-top: 5px; color: var(--text-muted); }
+        
+        .c-red { color: var(--danger); }
+        .c-green { color: var(--success); }
+        .c-blue { color: var(--primary); }
+
+        /* Detailed Tables */
+        .split-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .data-table td { padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .dt-lbl { color: var(--text-muted); width: 60%; font-size: 0.9rem; }
+        .dt-val { text-align: right; font-weight: 600; color: var(--text-main); }
+        .section-title { background: #F9FAFB; font-weight: 700; color: var(--primary); padding: 10px; border-radius: 6px; margin: 15px 0 5px 0; font-size: 0.9rem; border: 1px solid #E5E7EB; }
+
+        /* Scenario & Bulk */
+        .scen-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .scen-table th { background: #F9FAFB; padding: 12px; text-align: left; font-size: 0.85rem; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+        .scen-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .scen-table input { width: 100%; padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; }
+
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: #FEE2E2; color: var(--danger); }
+
+        .upload-zone { border: 2px dashed #9CA3AF; padding: 50px; text-align: center; border-radius: var(--radius); cursor: pointer; background: #F9FAFB; margin-bottom: 20px; transition: 0.2s; }
+        .upload-zone:hover { border-color: var(--primary); background: #EEF2FF; }
+
+        .table-scroll { overflow-x: auto; max-height: 600px; border: 1px solid var(--border); border-radius: var(--radius); }
+        .bulk-table { width: 100%; border-collapse: collapse; background: white; white-space: nowrap; font-size: 0.85rem; }
+        .bulk-table th { background: #F9FAFB; position: sticky; top: 0; padding: 12px; text-align: left; border-bottom: 2px solid var(--border); z-index: 10; font-weight:700; color:var(--text-main); }
+        .bulk-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+
+        .logic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .logic-card { border: 1px solid var(--border); padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary); background: white; }
+
+        /* Conditional Logic Styles */
+        .cond-row { background: #fff; }
+        .cond-row select, .cond-row input { padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; width: 100%; }
+        .else-row { background: #F3F4F6; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo"><i class="fa-solid fa-chart-pie"></i> PIT | Bircalc</div>
+        <div class="nav-links">
+            <div class="nav-item active" onclick="switchTab('simulator', this)">Simulator</div>
+            <div class="nav-item" onclick="switchTab('scenario', this)">Scenario Manager</div>
+            <div class="nav-item" onclick="switchTab('diff_scenarios', this)">Different Scenarios</div>
+            <div class="nav-item" onclick="switchTab('bulk', this)">Bulk Upload</div>
+            <div class="nav-item" onclick="switchTab('help', this)">Descriptions</div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- TAB 1: SIMULATOR -->
+        <div id="simulator" class="tab-pane active">
+            <!-- (Same as before) -->
+            <div class="card">
+                <div class="card-header">Calculation Parameters</div>
+                <div class="controls-grid">
+                    <div class="form-group">
+                        <label>Current Monthly Gross Salary</label>
+                        <input type="number" id="inp-gross" value="550" oninput="runSim()">
+                    </div>
+                    <div class="form-group">
+                        <label>Meal Allowance Amount</label>
+                        <input type="number" id="inp-meal" value="100" oninput="runSim()">
+                    </div>
+                    <div class="form-group range-wrap">
+                        <label>Company Compensation Coverage: <span class="range-val" id="disp-cov">50%</span></label>
+                        <input type="range" id="inp-cov" min="0" max="100" value="50" oninput="runSim()">
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dash-card">
+                    <div class="dash-title">Current Net Salary</div>
+                    <div class="dash-val" id="k-old-net">0.00</div>
+                    <div class="dash-sub">Zero Tax, 1% Union</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-title">New Gross Salary Required</div>
+                    <div class="dash-val c-blue" id="k-new-gross">0.00</div>
+                    <div class="dash-sub">Reverse Calculation</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-title">Additional Cost to Company</div>
+                    <div class="dash-val" id="k-diff">0.00</div>
+                    <div class="dash-sub">Monthly Difference</div>
+                </div>
+                <div class="dash-card" style="border:1px solid var(--success); background:#F0FDF4;">
+                    <div class="dash-title">Total Cash in Pocket</div>
+                    <div class="dash-val c-green" id="k-pocket">0.00</div>
+                    <div class="dash-sub">New Net + Meal Allowance</div>
+                </div>
+            </div>
+
+            <div class="split-layout">
+                <!-- Current Details -->
+                <div class="card">
+                    <div class="card-header">Current Scenario (2025 Rules)</div>
+                    <table class="data-table">
+                        <div class="section-title">Income & Deductions</div>
+                        <tr><td class="dt-lbl">Current Gross Salary</td><td class="dt-val" id="v-oldGross">0.00</td></tr>
+                        <tr><td class="dt-lbl">Simulated Personal Income Tax</td><td class="dt-val" id="v-oldTax">0.00</td></tr>
+                        <tr><td class="dt-lbl">Pension Insurance</td><td class="dt-val" id="v-oldPension">0.00</td></tr>
+                        <tr><td class="dt-lbl">Unemployment Insurance</td><td class="dt-val" id="v-oldUnemp">0.00</td></tr>
+                        <tr><td class="dt-lbl">Mandatory Health Insurance</td><td class="dt-val" id="v-oldHealth">0.00</td></tr>
+                        <tr style="background:#fff7ed;"><td class="dt-lbl">Trade Union Fee (1%)</td><td class="dt-val" style="color:var(--danger)" id="v-oldUnion">0.00</td></tr>
+                        <tr><td class="dt-lbl" style="font-weight:bold; color:var(--text-main);">Current Net Salary</td><td class="dt-val" style="font-weight:800; color:var(--primary);" id="v-oldNet">0.00</td></tr>
+                        <tr><td class="dt-lbl">Net Salary without Tax Relief</td><td class="dt-val" id="v-netNoRelief">0.00</td></tr>
+                        <tr><td class="dt-lbl">Net Salary without Meal Allowance</td><td class="dt-val" id="v-netNoMeal">0.00</td></tr>
+
+                        <div class="section-title">Employer Costs</div>
+                        <tr><td class="dt-lbl">Employer Social Insurance</td><td class="dt-val" id="v-oldEmpSocial">0.00</td></tr>
+                        <tr><td class="dt-lbl">Employer Unemployment Insurance</td><td class="dt-val" id="v-oldEmpUnemp">0.00</td></tr>
+                        <tr><td class="dt-lbl">Employer Medical Insurance</td><td class="dt-val" id="v-oldEmpMed">0.00</td></tr>
+                        <tr><td class="dt-lbl" style="border-top:1px solid #ddd; padding-top:5px;"><strong>Total Cost to Company (Super Gross)</strong></td><td class="dt-val" style="border-top:1px solid #ddd; padding-top:5px; font-weight:800;"> <span id="v-oldSuperGross">0.00</span></td></tr>
+                    </table>
+                </div>
+
+                <!-- New Details -->
+                <div class="card">
+                    <div class="card-header">Equalized Scenario (2026 Rules)</div>
+                    <table class="data-table">
+                        <div class="section-title">New Income & Deductions</div>
+                        <tr><td class="dt-lbl">New Gross Salary Required</td><td class="dt-val" id="v-newGrossReq">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Personal Income Tax</td><td class="dt-val" id="v-newTax">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Pension Insurance</td><td class="dt-val" id="v-newPension">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Unemployment Insurance</td><td class="dt-val" id="v-newUnemp">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Mandatory Health Insurance</td><td class="dt-val" id="v-newHealth">0.00</td></tr>
+                        <tr style="background:#fff7ed;"><td class="dt-lbl">Trade Union Fee (1%)</td><td class="dt-val" style="color:var(--danger)" id="v-newUnion">0.00</td></tr>
+                        <tr><td class="dt-lbl" style="font-weight:bold;">New Net Salary</td><td class="dt-val" style="font-weight:800; color:var(--success);" id="v-newNet">0.00</td></tr>
+                        <tr><td class="dt-lbl">Equalization Verification</td><td class="dt-val" id="v-check">Yes</td></tr>
+                        <tr><td class="dt-lbl">Meal Allowance</td><td class="dt-val" id="v-mealAllowance">0.00</td></tr>
+
+                        <div class="section-title">New Employer Costs</div>
+                        <tr><td class="dt-lbl">New Gross for Company</td><td class="dt-val" id="v-newGrossCompany">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Employer Social Insurance</td><td class="dt-val" id="v-newEmpSocial">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Employer Unemployment Ins.</td><td class="dt-val" id="v-newEmpUnemp">0.00</td></tr>
+                        <tr><td class="dt-lbl">New Employer Medical Insurance</td><td class="dt-val" id="v-newEmpMed">0.00</td></tr>
+                        <tr><td class="dt-lbl" style="border-top:1px solid #ddd; padding-top:5px;"><strong>New Total Cost to Company</strong></td><td class="dt-val" style="border-top:1px solid #ddd; padding-top:5px; font-weight:800;"> <span id="v-newSuperGross">0.00</span></td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: SCENARIO -->
+        <div id="scenario" class="tab-pane">
+            <!-- (Same as before) -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Scenario Builder</span>
+                    <button class="btn btn-primary" onclick="addScen()"><i class="fa-solid fa-plus"></i> Add Group</button>
+                </div>
+                
+                <div class="controls-grid" style="margin-bottom: 20px;">
+                    <div class="form-group range-wrap">
+                        <label>Global Coverage %</label>
+                        <span class="range-val" id="scen-cov-disp">50%</span>
+                        <input type="range" id="scen-cov" min="0" max="100" value="50" oninput="runScen()">
+                    </div>
+                </div>
+
+                <table class="scen-table">
+                    <thead>
+                        <tr>
+                            <th width="25%">Gross Salary</th>
+                            <th width="25%">Meal Allowance</th>
+                            <th width="20%">Count</th>
+                            <th width="20%">Cost Diff (Total)</th>
+                            <th width="10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="scen-body"></tbody>
+                </table>
+                
+                <div style="margin-top:20px; text-align:right;">
+                    <button class="btn btn-success" onclick="runScen()">Calculate All Totals</button>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" id="scen-results" style="display:none; margin-top:30px;">
+                <div class="dash-card">
+                    <div class="dash-title">Total Employees</div>
+                    <div class="dash-val" id="st-count">0</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-title">Old Total Cost</div>
+                    <div class="dash-val" id="st-old">0.00</div>
+                </div>
+                <div class="dash-card">
+                    <div class="dash-title">New Total Cost</div>
+                    <div class="dash-val" id="st-new">0.00</div>
+                </div>
+                <div class="dash-card" style="border: 2px solid var(--primary);">
+                    <div class="dash-title">Total Budget Variance</div>
+                    <div class="dash-val" id="st-diff">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DIFFERENT SCENARIOS (NEW) -->
+        <div id="diff_scenarios" class="tab-pane">
+            <div class="card">
+                <div class="card-header">
+                    <span>Conditional Scenario Rules</span>
+                    <button class="btn btn-primary" onclick="addDiffRule()">+ Add Condition</button>
+                </div>
+                
+                <p style="color:var(--text-muted); margin-bottom:15px;">Define rules based on Gross Salary. Logic flows from top to bottom. First match applies.</p>
+
+                <table class="scen-table" style="overflow:visible;">
+                    <thead>
+                        <tr>
+                            <th style="width:15%;">Condition</th>
+                            <th style="width:20%;">Gross Salary Limit</th>
+                            <th style="width:20%;">Apply Coverage %</th>
+                            <th style="width:20%;">Apply Meal Allowance</th>
+                            <th style="width:10%;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="diff-rules-body">
+                        <!-- Rules injected here -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="else-row">
+                            <td colspan="2" style="text-align:right; padding-right:15px; color:var(--text-muted);">ELSE (If no match above) -></td>
+                            <td><input type="number" id="else-cov" value="50" min="0" max="100" oninput="runDiffCalc()"></td>
+                            <td><input type="number" id="else-meal" value="0" min="0" oninput="runDiffCalc()"></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Upload & Calculate</div>
+                <div class="upload-zone" onclick="document.getElementById('diffFileIn').click()">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 40px; color: #9CA3AF; margin-bottom: 10px;"></i>
+                    <h3>Upload Excel File</h3>
+                    <p style="color:var(--text-muted)">Required Columns: <b>Employee ID</b>, <b>Gross Salary</b></p>
+                    <input type="file" id="diffFileIn" accept=".xlsx, .csv" style="display:none">
+                </div>
+            </div>
+
+            <div id="diff-results-area" style="display:none;">
+                <div class="dashboard-grid">
+                    <div class="dash-card">
+                        <div class="dash-title">Total Employees</div>
+                        <div class="dash-val" id="df-count">0</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-title">Total Current Cost</div>
+                        <div class="dash-val" id="df-old">0.00</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-title">Total New Cost</div>
+                        <div class="dash-val" id="df-new">0.00</div>
+                    </div>
+                    <div class="dash-card" style="border: 2px solid var(--primary);">
+                        <div class="dash-title">Total Budget Variance</div>
+                        <div class="dash-val" id="df-diff">0.00</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Detailed Results</div>
+                    <div class="table-scroll">
+                        <table class="bulk-table" id="diff-table">
+                            <thead></thead><tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: BULK -->
+        <div id="bulk" class="tab-pane">
+            <div class="card">
+                <div class="card-header">Simple Batch Analysis</div>
+                <div class="controls-grid" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Bulk Coverage % (Auto Updates)</label>
+                        <input type="number" id="bulk-cov" value="50" min="0" max="100" oninput="runBulkCalc()">
+                    </div>
+                </div>
+
+                <div class="upload-zone" onclick="document.getElementById('fileIn').click()">
+                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 40px; color: #9CA3AF; margin-bottom: 10px;"></i>
+                    <h3>Upload Excel File</h3>
+                    <p style="color:var(--text-muted)">Required Columns: ID, Gross, Meal</p>
+                    <input type="file" id="fileIn" accept=".xlsx, .csv" style="display:none">
+                </div>
+            </div>
+
+            <div id="bulk-results-area" style="display:none;">
+                <div class="dashboard-grid">
+                    <div class="dash-card">
+                        <div class="dash-title">Total Employees</div>
+                        <div class="dash-val" id="bk-count">0</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-title">Total Current Cost</div>
+                        <div class="dash-val" id="bk-old">0.00</div>
+                    </div>
+                    <div class="dash-card">
+                        <div class="dash-title">Total New Cost</div>
+                        <div class="dash-val" id="bk-new">0.00</div>
+                    </div>
+                    <div class="dash-card" style="border: 2px solid var(--primary);">
+                        <div class="dash-title">Total Budget Variance</div>
+                        <div class="dash-val" id="bk-diff">0.00</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>Detailed Results</span>
+                        <button class="btn btn-success" onclick="exportBulk()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="bulk-table" id="bulk-table">
+                            <thead></thead><tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: HELP -->
+        <div id="help" class="tab-pane">
+            <div class="card">
+                <div class="card-header">Column Definitions & Formulas</div>
+                <div class="logic-grid" id="logic-container"></div>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- 1. CONFIG ---
+    const FIELDS = [
+        {id:'oldGross', name:'Current Monthly Gross Salary'}, 
+        {id:'oldNet', name:'Current Net Salary'}, 
+        {id:'oldSuperGross', name:'Current Total Cost to Company'}, 
+        {id:'oldEmpSocial', name:'Employer Social Insurance'}, 
+        {id:'oldEmpUnemp', name:'Employer Unemployment Insurance'}, 
+        {id:'oldEmpMed', name:'Employer Medical Insurance'}, 
+        {id:'oldCostCompany', name:'Current Cost to Company Check'}, 
+        {id:'oldTax', name:'Simulated Personal Income Tax'}, 
+        {id:'oldPension', name:'Pension Insurance'}, 
+        {id:'oldUnemp', name:'Unemployment Insurance'}, 
+        {id:'oldHealth', name:'Mandatory Health Insurance'}, 
+        {id:'oldUnion', name:'Trade Union Fee (1%)'},
+        {id:'netNoRelief', name:'Net Salary without Tax Relief'}, 
+        {id:'netNoMeal', name:'Net Salary without Meal Allowance'},
+        
+        {id:'newGrossReq', name:'New Gross Salary Required'}, 
+        {id:'newTax', name:'New Personal Income Tax'}, 
+        {id:'newPension', name:'New Pension Insurance'}, 
+        {id:'newUnemp', name:'New Unemployment Insurance'}, 
+        {id:'newHealth', name:'New Mandatory Health Insurance'}, 
+        {id:'newUnion', name:'New Trade Union Fee (1%)'},
+        {id:'newNet', name:'New Net Salary'}, 
+        {id:'check', name:'Equalization Verification'}, 
+        {id:'newGrossCompany', name:'New Gross for Company'}, 
+        {id:'newEmpSocial', name:'New Employer Social Insurance'}, 
+        {id:'newEmpUnemp', name:'New Employer Unemployment Insurance'}, 
+        {id:'newEmpMed', name:'New Employer Medical Insurance'}, 
+        {id:'newSuperGross', name:'New Total Cost to Company'}, 
+        {id:'addCost', name:'Additional Cost Difference'}, 
+        {id:'mealAllowance', name:'Meal Allowance Amount'}, 
+        {id:'withoutMeal', name:'Base Net for Calculation'}
+    ];
+
+    // --- 2. MATH ENGINE (INCLUDES UNION FEE) ---
+
+    function calcCurrent(F4, AE4) {
+        let I4 = (F4 <= 200) ? F4 * 0.22 : (F4 - 200) * 0.15 + 44;
+        let J4 = F4 * 0.005;
+        let K4 = (F4 <= 8000) ? F4 * 0.02 : (F4 - 8000) * 0.005 + 160;
+        let L4 = F4 + I4 + J4 + K4;
+
+        let N4 = (F4 <= 200) ? F4 * 0.03 : ((F4 - 200) * 0.10 + 6);
+        let O4 = F4 * 0.005;
+        let P4 = (F4 <= 8000) ? F4 * 0.02 : ((F4 - 8000) * 0.005 + 160);
+        let Union = F4 * 0.01; 
+        
+        let G4 = F4 - N4 - O4 - P4 - Union; 
+        let AF4 = G4 - AE4;
+
+        let M4 = 0;
+        if(F4 < 2500) M4 = (F4 - 200) * 0.03;
+        else if(F4 < 8000) M4 = 75 + (F4 - 2500) * 0.10;
+        else M4 = 625 + (F4 - 8000) * 0.14;
+        if(F4 <= 200) M4 = 0;
+
+        let Q4 = F4 - M4 - N4 - O4 - P4 - Union; 
+
+        return { 
+            oldGross: F4, oldEmpSocial: I4, oldEmpUnemp: J4, oldEmpMed: K4, oldSuperGross: L4, oldCostCompany: L4,
+            oldTax: M4, oldPension: N4, oldUnemp: O4, oldHealth: P4, oldUnion: Union,
+            oldNet: G4, netNoRelief: Q4, netNoMeal: AF4 
+        };
+    }
+
+    function getR4(N) {
+        let res = 0;
+        if (N <= 0.945 * 200) res = N / 0.945;
+        else if (N <= 0.79 * 2500 + 151.5) res = (N - 20) / 0.845;
+        else if (Math.abs(N - (0.845 * 2500 + 20)) < 0.1) res = (N - 20) / 0.845;
+        else if (N <= 0.79 * 8000 + 151.5) res = (N - 151.5) / 0.79;
+        else res = (N - 471.5) / 0.75;
+        return Math.ceil(res);
+    }
+
+    function calcNew(R4, AE4) {
+        let S4 = 0;
+        if (R4 < 2500) S4 = (R4 - 200) * 0.03;
+        else if (R4 < 8000) S4 = 75 + (R4 - 2500) * 0.10;
+        else S4 = 625 + (R4 - 8000) * 0.14;
+        if (R4 <= 200) S4 = 0;
+
+        let T4 = (R4 <= 200) ? R4 * 0.03 : ((R4 - 200) * 0.10 + 6);
+        let U4 = R4 * 0.005;
+        let V4 = (R4 <= 2500) ? R4 * 0.02 : ((R4 - 2500) * 0.005 + 50);
+        let Union = R4 * 0.01;
+
+        let W4 = R4 - S4 - T4 - U4 - V4 - Union; 
+
+        let Y4 = R4;
+        let Z4 = 0; 
+        if (Y4 <= 200) Z4 = Y4 * 0.22;
+        else if (Y4 <= 8000) Z4 = (Y4 - 200) * 0.15 + 44; 
+        else Z4 = (Y4 - 8000) * 0.11 + 7800 * 0.15 + 44; 
+
+        let AA4 = Y4 * 0.005;
+        let AB4 = (Y4 <= 2500) ? Y4 * 0.02 : ((Y4 - 2500) * 0.005 + 50); 
+        let AC4 = Y4 + Z4 + AA4 + AB4 + AE4;
+
+        return { 
+            newGrossReq: R4, newGrossCompany: Y4, newTax: S4, newPension: T4, newUnemp: U4, newHealth: V4, newUnion: Union,
+            newNet: W4, newEmpSocial: Z4, newEmpUnemp: AA4, newEmpMed: AB4, newSuperGross: AC4 
+        };
+    }
+
+    function runLogic(grossIn, mealIn, coverPct) {
+        let F4 = parseFloat(grossIn) || 0;
+        let AE4 = parseFloat(mealIn) || 0;
+        let cov = parseFloat(coverPct) / 100;
+
+        let c = calcCurrent(F4, AE4);
+        
+        let projNet = c.netNoRelief; 
+        let loss = c.oldNet - projNet;
+        let empLoss = loss * (1 - cov);
+        let targetNet = (c.oldNet - empLoss) - AE4; 
+        if(targetNet < 0) targetNet = 0;
+
+        // Correct for Union Fee in Reverse Calc
+        let estimatedGross = getR4(targetNet);
+        let R4 = estimatedGross;
+        for(let i=0; i<3; i++) {
+            let adjustedTarget = targetNet + (R4 * 0.01);
+            R4 = getR4(adjustedTarget);
+        }
+
+        let n = calcNew(R4, AE4);
+        let AD4 = n.newSuperGross - c.oldSuperGross;
+        let X4 = (Math.abs((c.netNoMeal - n.newNet)) <= 1) ? "Yes" : "Diff";
+
+        return { ...c, ...n, addCost: AD4, check: X4, mealAllowance: AE4, withoutMeal: targetNet };
+    }
+
+    // --- UI FUNCS ---
+    function fmt(n) { return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits:2}); }
+
+    function runSim() {
+        let g = document.getElementById('inp-gross').value;
+        let m = document.getElementById('inp-meal').value;
+        let c = document.getElementById('inp-cov').value;
+        document.getElementById('disp-cov').innerText = c + '%';
+
+        let res = runLogic(g, m, c);
+
+        for (let key in res) {
+            let el = document.getElementById('v-' + key);
+            if(el) el.innerText = (key === 'check') ? res[key] : fmt(res[key]);
+        }
+
+        document.getElementById('k-old-net').innerText = fmt(res.oldNet);
+        document.getElementById('k-new-gross').innerText = fmt(res.newGrossReq);
+        document.getElementById('k-diff').innerText = (res.addCost>0?"+":"") + fmt(res.addCost);
+        document.getElementById('k-diff').style.color = res.addCost>0 ? "var(--danger)" : "var(--success)";
+        document.getElementById('k-pocket').innerText = fmt(res.newNet + res.mealAllowance);
+    }
+
+    // --- SCENARIO MANAGER (Standard) ---
+    function addScen() {
+        let b = document.getElementById('scen-body');
+        let r = document.createElement('tr');
+        r.innerHTML = `<td><input type="number" class="sq-g" value="5000"></td><td><input type="number" class="sq-m" value="100"></td><td><input type="number" class="sq-c" value="1"></td><td class="sq-res" style="text-align:right;font-weight:bold;">0.00</td><td style="text-align:center;"><i class="fa-solid fa-trash" style="color:var(--danger);cursor:pointer;" onclick="this.closest('tr').remove()"></i></td>`;
+        b.appendChild(r);
+    }
+    addScen();
+
+    function runScen() {
+        let cov = document.getElementById('scen-cov').value;
+        document.getElementById('scen-cov-disp').innerText = cov+"%";
+        let rows = document.querySelectorAll('#scen-body tr');
+        let tc=0, to=0, tn=0;
+
+        rows.forEach(r => {
+            let g = r.querySelector('.sq-g').value;
+            let m = r.querySelector('.sq-m').value;
+            let n = parseInt(r.querySelector('.sq-c').value) || 1;
+            let res = runLogic(g, m, cov);
+            let diff = res.addCost * n;
+            
+            let cell = r.querySelector('.sq-res');
+            cell.innerText = (diff>0?"+":"") + fmt(diff);
+            cell.style.color = diff>0?"var(--danger)":"var(--success)";
+
+            tc += n; to += res.oldSuperGross * n; tn += res.newSuperGross * n;
+        });
+
+        document.getElementById('scen-results').style.display='grid';
+        document.getElementById('st-count').innerText=tc;
+        document.getElementById('st-old').innerText=fmt(to);
+        document.getElementById('st-new').innerText=fmt(tn);
+        let df = tn - to;
+        let dfe = document.getElementById('st-diff');
+        dfe.innerText=(df>0?"+":"")+fmt(df);
+        dfe.style.color=df>0?"var(--danger)":"var(--success)";
+    }
+
+    // --- DIFFERENT SCENARIOS (NEW TAB LOGIC) ---
+    let storedDiffData = [];
+
+    function addDiffRule() {
+        let b = document.getElementById('diff-rules-body');
+        let r = document.createElement('tr');
+        r.className = 'cond-row';
+        r.innerHTML = `
+            <td>
+                <select class="cond-op" onchange="runDiffCalc()">
+                    <option value="lte">Less than or Equal (<=)</option>
+                    <option value="lt">Less than (<)</option>
+                    <option value="eq">Equal to (=)</option>
+                    <option value="gt">Greater than (>)</option>
+                    <option value="gte">Greater than or Equal (>=)</option>
+                </select>
+            </td>
+            <td><input type="number" class="cond-val" value="2500" oninput="runDiffCalc()"></td>
+            <td><input type="number" class="cond-cov" value="100" min="0" max="100" oninput="runDiffCalc()"></td>
+            <td><input type="number" class="cond-meal" value="100" min="0" oninput="runDiffCalc()"></td>
+            <td style="text-align:center;"><i class="fa-solid fa-trash" style="color:var(--danger);cursor:pointer;" onclick="this.closest('tr').remove(); runDiffCalc();"></i></td>
+        `;
+        b.appendChild(r);
+    }
+    // Add one initial rule
+    addDiffRule();
+
+    document.getElementById('diffFileIn').addEventListener('change', function(e){
+        let r=new FileReader();
+        r.onload=function(e){
+            let d=new Uint8Array(e.target.result);
+            let w=XLSX.read(d,{type:'array'});
+            storedDiffData = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1});
+            runDiffCalc();
+        };
+        r.readAsArrayBuffer(e.target.files[0]);
+    });
+
+    function getRuleForGross(gross) {
+        let rows = document.querySelectorAll('#diff-rules-body tr');
+        
+        for (let r of rows) {
+            let op = r.querySelector('.cond-op').value;
+            let val = parseFloat(r.querySelector('.cond-val').value) || 0;
+            let cov = parseFloat(r.querySelector('.cond-cov').value) || 0;
+            let meal = parseFloat(r.querySelector('.cond-meal').value) || 0;
+            
+            let match = false;
+            if(op === 'lte' && gross <= val) match = true;
+            else if(op === 'lt' && gross < val) match = true;
+            else if(op === 'eq' && gross == val) match = true;
+            else if(op === 'gt' && gross > val) match = true;
+            else if(op === 'gte' && gross >= val) match = true;
+
+            if(match) return {cov, meal};
+        }
+
+        // Else Fallback
+        let elseCov = parseFloat(document.getElementById('else-cov').value) || 0;
+        let elseMeal = parseFloat(document.getElementById('else-meal').value) || 0;
+        return {cov: elseCov, meal: elseMeal};
+    }
+
+    function runDiffCalc() {
+        if(!storedDiffData || storedDiffData.length === 0) return;
+
+        let h = document.querySelector('#diff-table thead');
+        let b = document.querySelector('#diff-table tbody');
+        h.innerHTML=""; b.innerHTML="";
+        
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<th>ID</th><th>Applied Rules</th>`;
+        FIELDS.forEach(f => tr.innerHTML+=`<th>${f.name}</th>`);
+        h.appendChild(tr);
+
+        let tc=0, to=0, tn=0;
+
+        for(let i=1; i<storedDiffData.length; i++){
+            let r=storedDiffData[i];
+            if(!r[0]) continue; // ID, Gross
+            
+            let gross = parseFloat(r[1]) || 0;
+            let rule = getRuleForGross(gross);
+            
+            let res = runLogic(gross, rule.meal, rule.cov);
+            
+            tc++; to+=res.oldSuperGross; tn+=res.newSuperGross;
+
+            let tr2 = document.createElement('tr');
+            tr2.innerHTML = `<td><b>${r[0]}</b></td><td>Cov:${rule.cov}%, Meal:${rule.meal}</td>`;
+            FIELDS.forEach(f => {
+                let v = res[f.id];
+                let d = (f.id==='check')?v:fmt(v);
+                let s = (f.id==='addCost')?(v>0?"color:red;font-weight:bold":"color:green;font-weight:bold"):"";
+                tr2.innerHTML += `<td style="${s}">${d}</td>`;
+            });
+            b.appendChild(tr2);
+        }
+
+        document.getElementById('df-count').innerText = tc;
+        document.getElementById('df-old').innerText = fmt(to);
+        document.getElementById('df-new').innerText = fmt(tn);
+        let df = tn - to;
+        let dfe = document.getElementById('df-diff');
+        dfe.innerText = (df>0?"+":"") + fmt(df);
+        dfe.style.color = df>0 ? "var(--danger)" : "var(--success)";
+
+        document.getElementById('diff-results-area').style.display='block';
+    }
+
+    // --- BULK ---
+    let storedBulkRows = [];
+    let bulkDataForExport = [];
+
+    document.getElementById('fileIn').addEventListener('change', function(e){
+        let r=new FileReader();
+        r.onload=function(e){
+            let d=new Uint8Array(e.target.result);
+            let w=XLSX.read(d,{type:'array'});
+            storedBulkRows = XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1});
+            runBulkCalc();
+        };
+        r.readAsArrayBuffer(e.target.files[0]);
+    });
+
+    function runBulkCalc() {
+        if(!storedBulkRows || storedBulkRows.length === 0) return;
+
+        let cov = document.getElementById('bulk-cov').value;
+        let h = document.querySelector('#bulk-table thead');
+        let b = document.querySelector('#bulk-table tbody');
+        h.innerHTML=""; b.innerHTML=""; bulkDataForExport=[];
+        
+        let tc=0, to=0, tn=0;
+
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<th>ID</th>`;
+        FIELDS.forEach(f => tr.innerHTML+=`<th>${f.name}</th>`);
+        h.appendChild(tr);
+
+        for(let i=1; i<storedBulkRows.length; i++){
+            let r=storedBulkRows[i];
+            if(!r[0]) continue;
+            let res = runLogic(r[1], r[2], cov);
+            
+            tc++; to+=res.oldSuperGross; tn+=res.newSuperGross;
+
+            let obj = {ID:r[0]};
+            FIELDS.forEach(f => obj[f.name] = res[f.id]);
+            bulkDataForExport.push(obj);
+
+            let tr2 = document.createElement('tr');
+            tr2.innerHTML = `<td><b>${r[0]}</b></td>`;
+            FIELDS.forEach(f => {
+                let v = res[f.id];
+                let d = (f.id==='check')?v:fmt(v);
+                let s = (f.id==='addCost')?(v>0?"color:red;font-weight:bold":"color:green;font-weight:bold"):"";
+                tr2.innerHTML += `<td style="${s}">${d}</td>`;
+            });
+            b.appendChild(tr2);
+        }
+        
+        document.getElementById('bk-count').innerText = tc;
+        document.getElementById('bk-old').innerText = fmt(to);
+        document.getElementById('bk-new').innerText = fmt(tn);
+        let df = tn - to;
+        let dfe = document.getElementById('bk-diff');
+        dfe.innerText = (df>0?"+":"") + fmt(df);
+        dfe.style.color = df>0 ? "var(--danger)" : "var(--success)";
+
+        document.getElementById('bulk-results-area').style.display='block';
+    }
+
+    function exportBulk(){
+        if(!bulkDataForExport.length)return;
+        let ws=XLSX.utils.json_to_sheet(bulkDataForExport);
+        let wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,"Data");
+        XLSX.writeFile(wb,"Report.xlsx");
+    }
+
+    FIELDS.forEach(f => {
+        document.getElementById('logic-container').innerHTML += `
+            <div class="logic-card"><div class="logic-title">${f.name}</div><div class="logic-desc">Calculated field based on 2025/2026 rules.</div></div>
+        `;
+    });
+
+    function switchTab(id, el){
+        document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+        el.classList.add('active');
+    }
+    
+    runSim();
+</script>
+</body>
+</html>
