@@ -53,13 +53,18 @@
         .card-header { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--primary-dark); }
 
         /* Inputs */
-        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; align-items: end; }
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; align-items: end; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
         .form-group input { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; transition: 0.2s; }
         .form-group input:focus { border-color: var(--primary); outline: none; ring: 2px solid var(--primary); }
         .range-wrap { position: relative; padding-top: 10px; }
         .range-val { font-weight: bold; color: var(--primary); float: right; }
         input[type=range] { width: 100%; cursor: pointer; }
+
+        /* Radio Group Style */
+        .radio-group { display: flex; gap: 15px; align-items: center; height: 45px; }
+        .radio-group label { margin-bottom: 0; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .radio-group input[type="radio"] { width: auto; margin: 0; accent-color: var(--primary); }
 
         /* Dashboard KPIs */
         .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
@@ -100,48 +105,8 @@
         .bulk-table th { background: #F9FAFB; position: sticky; top: 0; padding: 12px; text-align: left; border-bottom: 2px solid var(--border); z-index: 10; font-weight:700; color:var(--text-main); }
         .bulk-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 
-        /* Logic Grid & Interactive Cards */
-        .logic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 15px; }
-        
-        .logic-card { 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            border-left: 4px solid var(--primary); 
-            background: white; 
-            cursor: pointer;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .logic-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transform: translateY(-2px);
-        }
-
-        .logic-header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logic-title { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
-        .logic-icon { color: var(--text-muted); transition: transform 0.3s; }
-        
-        .logic-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-out;
-            background: #F9FAFB;
-            border-top: 1px solid #eee;
-        }
-
-        .logic-card.active .logic-icon { transform: rotate(180deg); color: var(--primary); }
-        .logic-card.active .logic-content { max-height: 500px; /* arbitrary large height */ border-top: 1px solid var(--border); }
-
-        .logic-body { padding: 15px; font-size: 0.85rem; color: var(--text-main); line-height: 1.6; }
-        .logic-label { font-weight: 700; color: var(--primary-dark); margin-top: 10px; display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
-        .logic-code { font-family: monospace; background: #e0e7ff; padding: 2px 6px; border-radius: 4px; color: #3730a3; display: inline-block; margin-top: 4px; }
+        .logic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
+        .logic-card { border: 1px solid var(--border); padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary); background: white; }
 
         /* Conditional Logic Styles */
         .cond-row { background: #fff; }
@@ -166,7 +131,6 @@
 
         <!-- TAB 1: SIMULATOR -->
         <div id="simulator" class="tab-pane active">
-            <!-- (Same as before) -->
             <div class="card">
                 <div class="card-header">Calculation Parameters</div>
                 <div class="controls-grid">
@@ -177,6 +141,13 @@
                     <div class="form-group">
                         <label>Meal Allowance Amount</label>
                         <input type="number" id="inp-meal" value="100" oninput="runSim()">
+                    </div>
+                    <div class="form-group">
+                        <label>Trade Union Fee (1%)</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="sim-union" value="1" checked onchange="runSim()"> Yes</label>
+                            <label><input type="radio" name="sim-union" value="0" onchange="runSim()"> No</label>
+                        </div>
                     </div>
                     <div class="form-group range-wrap">
                         <label>Company Compensation Coverage: <span class="range-val" id="disp-cov">50%</span></label>
@@ -189,7 +160,7 @@
                 <div class="dash-card">
                     <div class="dash-title">Current Net Salary</div>
                     <div class="dash-val" id="k-old-net">0.00</div>
-                    <div class="dash-sub">Zero Tax, 1% Union</div>
+                    <div class="dash-sub">Zero Tax, Union Applied</div>
                 </div>
                 <div class="dash-card">
                     <div class="dash-title">New Gross Salary Required</div>
@@ -258,7 +229,7 @@
             </div>
         </div>
 
-        <!-- TAB 2: SCENARIO -->
+        <!-- TAB 2: SCENARIO MANAGER -->
         <div id="scenario" class="tab-pane">
             <div class="card">
                 <div class="card-header">
@@ -271,6 +242,13 @@
                         <label>Global Coverage %</label>
                         <span class="range-val" id="scen-cov-disp">50%</span>
                         <input type="range" id="scen-cov" min="0" max="100" value="50" oninput="runScen()">
+                    </div>
+                    <div class="form-group">
+                        <label>Trade Union Fee (1%)</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="scen-union" value="1" checked onchange="runScen()"> Yes</label>
+                            <label><input type="radio" name="scen-union" value="0" onchange="runScen()"> No</label>
+                        </div>
                     </div>
                 </div>
 
@@ -320,6 +298,16 @@
                     <button class="btn btn-primary" onclick="addDiffRule()">+ Add Condition</button>
                 </div>
                 
+                <div class="controls-grid" style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:15px;">
+                    <div class="form-group">
+                        <label>Trade Union Fee (1%)</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="diff-union" value="1" checked onchange="runDiffCalc()"> Yes</label>
+                            <label><input type="radio" name="diff-union" value="0" onchange="runDiffCalc()"> No</label>
+                        </div>
+                    </div>
+                </div>
+
                 <p style="color:var(--text-muted); margin-bottom:15px;">Define rules based on Gross Salary. Logic flows from top to bottom. First match applies.</p>
 
                 <table class="scen-table" style="overflow:visible;">
@@ -377,7 +365,10 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header">Detailed Results</div>
+                    <div class="card-header">
+                        <span>Detailed Results</span>
+                        <button class="btn btn-success" onclick="exportDiff()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+                    </div>
                     <div class="table-scroll">
                         <table class="bulk-table" id="diff-table">
                             <thead></thead><tbody></tbody>
@@ -393,8 +384,15 @@
                 <div class="card-header">Simple Batch Analysis</div>
                 <div class="controls-grid" style="margin-bottom: 20px;">
                     <div class="form-group">
-                        <label>Bulk Coverage % (Auto Updates)</label>
+                        <label>Bulk Coverage %</label>
                         <input type="number" id="bulk-cov" value="50" min="0" max="100" oninput="runBulkCalc()">
+                    </div>
+                    <div class="form-group">
+                        <label>Trade Union Fee (1%)</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="bulk-union" value="1" checked onchange="runBulkCalc()"> Yes</label>
+                            <label><input type="radio" name="bulk-union" value="0" onchange="runBulkCalc()"> No</label>
+                        </div>
                     </div>
                 </div>
 
@@ -452,15 +450,14 @@
 
 <script>
     // --- DATA & CONFIG ---
-    // Detailed definitions for the Help Tab
     const FORMULA_DEFS = {
         'oldGross': { desc: "The base monthly salary before any deductions.", logic: "Manual Input", impact: "Starting point for all calculations." },
-        'oldNet': { desc: "The amount the employee currently takes home.", logic: "Gross - (Pension + Unemp + Health + 1% Union). Tax is 0 in 2025.", impact: "Baseline for equalization target." },
+        'oldNet': { desc: "The amount the employee currently takes home.", logic: "Gross - (Pension + Unemp + Health + Union). Tax is 0 in 2025.", impact: "Baseline for equalization target." },
         'oldSuperGross': { desc: "Total cost to the employer in current state.", logic: "Gross + Emp Social + Emp Unemp + Emp Medical.", impact: "Base budget." },
         'oldEmpSocial': { desc: "Social Insurance paid by Employer.", logic: "IF(Gross<=200, 22%, (Gross-200)*15%+44).", impact: "Employer cost." },
         'oldEmpMed': { desc: "Medical Insurance paid by Employer.", logic: "IF(Gross<=8000, 2%, (Gross-8000)*0.5%+160).", impact: "Employer cost." },
-        'oldUnion': { desc: "Trade Union Membership Fee.", logic: "Gross * 1%.", impact: "Reduces Net Salary." },
-        'newGrossReq': { desc: "The new Gross Salary calculated to achieve the target Net.", logic: "Reverse calculation using tax coefficients (0.945, etc.) + 1% Union adjustment.", impact: "The new salary to be offered." },
+        'oldUnion': { desc: "Trade Union Membership Fee.", logic: "Gross * 1% (if enabled).", impact: "Reduces Net Salary." },
+        'newGrossReq': { desc: "The new Gross Salary calculated to achieve the target Net.", logic: "Reverse calculation using tax coefficients + Union adjustment.", impact: "The new salary to be offered." },
         'newTax': { desc: "Personal Income Tax in 2026.", logic: "Progressive: 0% (<200), 3% (<2500), 10% (<8000), 14% (>8000).", impact: "Reduces Net Salary." },
         'newNet': { desc: "The actual Net Salary the employee will receive in 2026.", logic: "New Gross - (Tax + Pension + Unemp + Health + Union).", impact: "Employee take-home pay." },
         'newSuperGross': { desc: "Total new cost to the employer.", logic: "New Gross + New Emp Taxes + Meal Allowance.", impact: "New budget requirement." },
@@ -501,9 +498,9 @@
         {id:'withoutMeal', name:'Base Net for Calculation'}
     ];
 
-    // --- 2. MATH ENGINE (INCLUDES UNION FEE) ---
+    // --- 2. MATH ENGINE (WITH UNION TOGGLE) ---
 
-    function calcCurrent(F4, AE4) {
+    function calcCurrent(F4, AE4, applyUnion) {
         let I4 = (F4 <= 200) ? F4 * 0.22 : (F4 - 200) * 0.15 + 44;
         let J4 = F4 * 0.005;
         let K4 = (F4 <= 8000) ? F4 * 0.02 : (F4 - 8000) * 0.005 + 160;
@@ -512,7 +509,7 @@
         let N4 = (F4 <= 200) ? F4 * 0.03 : ((F4 - 200) * 0.10 + 6);
         let O4 = F4 * 0.005;
         let P4 = (F4 <= 8000) ? F4 * 0.02 : ((F4 - 8000) * 0.005 + 160);
-        let Union = F4 * 0.01; 
+        let Union = applyUnion ? (F4 * 0.01) : 0;
         
         let G4 = F4 - N4 - O4 - P4 - Union; 
         let AF4 = G4 - AE4;
@@ -542,7 +539,7 @@
         return Math.ceil(res);
     }
 
-    function calcNew(R4, AE4) {
+    function calcNew(R4, AE4, applyUnion) {
         let S4 = 0;
         if (R4 < 2500) S4 = (R4 - 200) * 0.03;
         else if (R4 < 8000) S4 = 75 + (R4 - 2500) * 0.10;
@@ -552,7 +549,7 @@
         let T4 = (R4 <= 200) ? R4 * 0.03 : ((R4 - 200) * 0.10 + 6);
         let U4 = R4 * 0.005;
         let V4 = (R4 <= 2500) ? R4 * 0.02 : ((R4 - 2500) * 0.005 + 50);
-        let Union = R4 * 0.01;
+        let Union = applyUnion ? (R4 * 0.01) : 0;
 
         let W4 = R4 - S4 - T4 - U4 - V4 - Union; 
 
@@ -572,12 +569,12 @@
         };
     }
 
-    function runLogic(grossIn, mealIn, coverPct) {
+    function runLogic(grossIn, mealIn, coverPct, applyUnion) {
         let F4 = parseFloat(grossIn) || 0;
         let AE4 = parseFloat(mealIn) || 0;
         let cov = parseFloat(coverPct) / 100;
 
-        let c = calcCurrent(F4, AE4);
+        let c = calcCurrent(F4, AE4, applyUnion);
         
         let projNet = c.netNoRelief; 
         let loss = c.oldNet - projNet;
@@ -585,15 +582,18 @@
         let targetNet = (c.oldNet - empLoss) - AE4; 
         if(targetNet < 0) targetNet = 0;
 
-        // Correct for Union Fee in Reverse Calc
+        // Correct for Union Fee in Reverse Calc (Conditional)
         let estimatedGross = getR4(targetNet);
         let R4 = estimatedGross;
-        for(let i=0; i<3; i++) {
-            let adjustedTarget = targetNet + (R4 * 0.01);
-            R4 = getR4(adjustedTarget);
+        // If Union is ON, iterate to account for 1% drag
+        if(applyUnion) {
+            for(let i=0; i<3; i++) {
+                let adjustedTarget = targetNet + (R4 * 0.01);
+                R4 = getR4(adjustedTarget);
+            }
         }
 
-        let n = calcNew(R4, AE4);
+        let n = calcNew(R4, AE4, applyUnion);
         let AD4 = n.newSuperGross - c.oldSuperGross;
         let X4 = (Math.abs((c.netNoMeal - n.newNet)) <= 1) ? "Yes" : "Diff";
 
@@ -607,9 +607,13 @@
         let g = document.getElementById('inp-gross').value;
         let m = document.getElementById('inp-meal').value;
         let c = document.getElementById('inp-cov').value;
+        // Read Radio Button for Union
+        let uVal = document.querySelector('input[name="sim-union"]:checked').value;
+        let isUnion = (uVal === "1");
+
         document.getElementById('disp-cov').innerText = c + '%';
 
-        let res = runLogic(g, m, c);
+        let res = runLogic(g, m, c, isUnion);
 
         for (let key in res) {
             let el = document.getElementById('v-' + key);
@@ -623,7 +627,7 @@
         document.getElementById('k-pocket').innerText = fmt(res.newNet + res.mealAllowance);
     }
 
-    // --- SCENARIO MANAGER ---
+    // --- SCENARIO ---
     function addScen() {
         let b = document.getElementById('scen-body');
         let r = document.createElement('tr');
@@ -635,6 +639,9 @@
     function runScen() {
         let cov = document.getElementById('scen-cov').value;
         document.getElementById('scen-cov-disp').innerText = cov+"%";
+        let uVal = document.querySelector('input[name="scen-union"]:checked').value;
+        let isUnion = (uVal === "1");
+
         let rows = document.querySelectorAll('#scen-body tr');
         let tc=0, to=0, tn=0;
 
@@ -642,7 +649,7 @@
             let g = r.querySelector('.sq-g').value;
             let m = r.querySelector('.sq-m').value;
             let n = parseInt(r.querySelector('.sq-c').value) || 1;
-            let res = runLogic(g, m, cov);
+            let res = runLogic(g, m, cov, isUnion);
             let diff = res.addCost * n;
             
             let cell = r.querySelector('.sq-res');
@@ -662,8 +669,9 @@
         dfe.style.color=df>0?"var(--danger)":"var(--success)";
     }
 
-    // --- DIFFERENT SCENARIOS (NEW TAB LOGIC) ---
+    // --- DIFFERENT SCENARIOS ---
     let storedDiffData = [];
+    let diffDataForExport = [];
 
     function addDiffRule() {
         let b = document.getElementById('diff-rules-body');
@@ -686,7 +694,6 @@
         `;
         b.appendChild(r);
     }
-    // Add one initial rule
     addDiffRule();
 
     document.getElementById('diffFileIn').addEventListener('change', function(e){
@@ -702,24 +709,19 @@
 
     function getRuleForGross(gross) {
         let rows = document.querySelectorAll('#diff-rules-body tr');
-        
         for (let r of rows) {
             let op = r.querySelector('.cond-op').value;
             let val = parseFloat(r.querySelector('.cond-val').value) || 0;
             let cov = parseFloat(r.querySelector('.cond-cov').value) || 0;
             let meal = parseFloat(r.querySelector('.cond-meal').value) || 0;
-            
             let match = false;
             if(op === 'lte' && gross <= val) match = true;
             else if(op === 'lt' && gross < val) match = true;
             else if(op === 'eq' && gross == val) match = true;
             else if(op === 'gt' && gross > val) match = true;
             else if(op === 'gte' && gross >= val) match = true;
-
             if(match) return {cov, meal};
         }
-
-        // Else Fallback
         let elseCov = parseFloat(document.getElementById('else-cov').value) || 0;
         let elseMeal = parseFloat(document.getElementById('else-meal').value) || 0;
         return {cov: elseCov, meal: elseMeal};
@@ -727,10 +729,14 @@
 
     function runDiffCalc() {
         if(!storedDiffData || storedDiffData.length === 0) return;
+        
+        // Read Diff Scenario Union Toggle
+        let uVal = document.querySelector('input[name="diff-union"]:checked').value;
+        let isUnion = (uVal === "1");
 
         let h = document.querySelector('#diff-table thead');
         let b = document.querySelector('#diff-table tbody');
-        h.innerHTML=""; b.innerHTML="";
+        h.innerHTML=""; b.innerHTML=""; diffDataForExport=[];
         
         let tr = document.createElement('tr');
         tr.innerHTML = `<th>ID</th><th>Applied Rules</th>`;
@@ -741,14 +747,19 @@
 
         for(let i=1; i<storedDiffData.length; i++){
             let r=storedDiffData[i];
-            if(!r[0]) continue; // ID, Gross
+            if(!r[0]) continue; 
             
             let gross = parseFloat(r[1]) || 0;
             let rule = getRuleForGross(gross);
             
-            let res = runLogic(gross, rule.meal, rule.cov);
+            let res = runLogic(gross, rule.meal, rule.cov, isUnion);
             
             tc++; to+=res.oldSuperGross; tn+=res.newSuperGross;
+
+            // Store Export Data
+            let obj = {ID:r[0], "Rule":`Cov:${rule.cov}%, Meal:${rule.meal}`};
+            FIELDS.forEach(f => obj[f.name] = res[f.id]);
+            diffDataForExport.push(obj);
 
             let tr2 = document.createElement('tr');
             tr2.innerHTML = `<td><b>${r[0]}</b></td><td>Cov:${rule.cov}%, Meal:${rule.meal}</td>`;
@@ -772,6 +783,14 @@
         document.getElementById('diff-results-area').style.display='block';
     }
 
+    function exportDiff(){
+        if(!diffDataForExport.length)return;
+        let ws=XLSX.utils.json_to_sheet(diffDataForExport);
+        let wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,"ScenarioData");
+        XLSX.writeFile(wb,"Different_Scenarios_Report.xlsx");
+    }
+
     // --- BULK ---
     let storedBulkRows = [];
     let bulkDataForExport = [];
@@ -791,6 +810,9 @@
         if(!storedBulkRows || storedBulkRows.length === 0) return;
 
         let cov = document.getElementById('bulk-cov').value;
+        let uVal = document.querySelector('input[name="bulk-union"]:checked').value;
+        let isUnion = (uVal === "1");
+
         let h = document.querySelector('#bulk-table thead');
         let b = document.querySelector('#bulk-table tbody');
         h.innerHTML=""; b.innerHTML=""; bulkDataForExport=[];
@@ -805,7 +827,7 @@
         for(let i=1; i<storedBulkRows.length; i++){
             let r=storedBulkRows[i];
             if(!r[0]) continue;
-            let res = runLogic(r[1], r[2], cov);
+            let res = runLogic(r[1], r[2], cov, isUnion);
             
             tc++; to+=res.oldSuperGross; tn+=res.newSuperGross;
 
